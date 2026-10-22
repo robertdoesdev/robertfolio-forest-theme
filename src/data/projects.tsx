@@ -56,7 +56,7 @@ const projects: Project[] = [
     category: "Personal portfolio · Web experience",
     title: "Robertfolio",
     src: "/assets/projects-screenshots/portfolio/forest-preview.svg",
-    screenshots: ["forest-preview.svg"],
+    screenshots: ["portfolio.png"],
     skills: { frontend: [TECH.ts, TECH.react, TECH.next, TECH.tailwind], backend: [] },
     live: "https://robertfolio.lovable.app",
     content: (
@@ -72,7 +72,7 @@ const projects: Project[] = [
     category: "Social discovery · Web app",
     title: "SideQuest",
     src: "/assets/projects-screenshots/sidequest/landing.svg",
-    screenshots: ["landing.svg"],
+    screenshots: ["sidequest.jpg"],
     skills: { frontend: [TECH.html, TECH.css, TECH.js], backend: [TECH.node, TECH.postgres] },
     live: "https://sidequest-world.vercel.app",
     github: "https://github.com/robertdoesdev/Sidequest",
@@ -106,7 +106,7 @@ const projects: Project[] = [
     category: "Web project · Details coming soon",
     title: "Stash",
     src: "/assets/projects-screenshots/stash/placeholder.svg",
-    screenshots: ["placeholder.svg"],
+    screenshots: ["stash.jpg"],
     skills: { frontend: [], backend: [] },
     live: "#",
     content: (
