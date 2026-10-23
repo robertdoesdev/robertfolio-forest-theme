@@ -24,7 +24,7 @@ const ContactSection = () => {
         </>} />
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[1.05fr_.95fr] z-[9999] mx-4">
         <div className="mt-10 flex flex-col justify-center gap-6 md:mt-20">
-          <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">Have a product idea, a design problem, or a team that needs another builder? Reach out and tell me what you have in mind.</p>
+          <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">Have a product idea, a design problem, or a team that needs another builder? Reach out and tell me what you have in mind. Open to hackathons, team building activities, connecting and collaborative projects.</p>
           <div className="flex flex-wrap gap-3">
             <Link href="https://wa.me/2348138836551" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-3 text-sm transition hover:-translate-y-0.5 hover:border-foreground/50"><SiWhatsapp size={18} /> WhatsApp</Link>
             <Link href={config.social.linkedin} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-full border border-border bg-background/70 px-4 py-3 text-sm transition hover:-translate-y-0.5 hover:border-foreground/50"><SiLinkedin size={18} /> LinkedIn</Link>
@@ -35,7 +35,7 @@ const ContactSection = () => {
           <CardHeader>
             <CardTitle className="text-4xl">Contact Form</CardTitle>
             <CardDescription>
-              Send a message below. The form needs the site owner to configure email delivery before submissions can be received.
+              Send a message below. formal or Informal, I&apos;ll get back to you as soon as possible.
             </CardDescription>
           </CardHeader>
           <CardContent>

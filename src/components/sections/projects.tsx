@@ -5,17 +5,48 @@ import {
   ResponsiveDialogContent,
   ResponsiveDialogTrigger,
 } from "../ui/responsive-dialog";
-import { FloatingDock } from "../ui/floating-dock";
 import { ScrollArea } from "../ui/scroll-area";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { motion } from "motion/react";
 
-import projects, { Project } from "@/data/projects";
+import projects, { Project, Skill as ProjectSkill } from "@/data/projects";
+import { SKILLS } from "@/data/constants";
 import { SectionHeader } from "./section-header";
 
 import SectionWrapper from "../ui/section-wrapper";
 import ScrollingPreview from "../scrolling-preview";
+
+/* Real technology icons, looked up by label from the shared SKILLS data
+   (JavaScript, React, Node.js ...). Unknown technologies fall back to initials. */
+const ICON_BY_LABEL = new Map(Object.values(SKILLS).map((skill) => [skill.label.toLowerCase(), skill.icon]));
+
+const TechChips = ({ items }: { items: ProjectSkill[] }) => (
+  <ul className="m-0 flex list-none flex-wrap justify-center gap-2 p-0 md:justify-start">
+    {items.map((item) => {
+      const icon = ICON_BY_LABEL.get(item.title.toLowerCase());
+      return (
+        <li
+          key={item.title}
+          className="flex items-center gap-2 rounded-full border border-border/70 bg-secondary/40 py-1 pl-1 pr-3 text-sm font-medium text-foreground"
+        >
+          {/* Light tile keeps dark logos (Next.js, GitHub) legible in night mode. */}
+          <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white/90 ring-1 ring-black/10">
+            {icon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={icon} alt="" width={18} height={18} loading="lazy" draggable={false} className="size-[18px] object-contain" />
+            ) : (
+              <span aria-hidden="true" className="text-[9px] font-semibold uppercase text-neutral-800">
+                {item.title.slice(0, 2)}
+              </span>
+            )}
+          </span>
+          {item.title}
+        </li>
+      );
+    })}
+  </ul>
+);
 
 const ProjectsSection = () => {
   return (
@@ -122,7 +153,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
                     <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
                       Frontend
                     </span>
-                    <FloatingDock items={project.skills.frontend} />
+                    <TechChips items={project.skills.frontend} />
                   </div>
                 )}
                 {project.skills.backend?.length > 0 && (
@@ -130,7 +161,7 @@ const ProjectCard = ({ project }: { project: Project }) => {
                     <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
                       Backend
                     </span>
-                    <FloatingDock items={project.skills.backend} />
+                    <TechChips items={project.skills.backend} />
                   </div>
                 )}
               </motion.div>

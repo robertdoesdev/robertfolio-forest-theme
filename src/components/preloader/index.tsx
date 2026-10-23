@@ -5,15 +5,12 @@ import {
   createContext,
   ReactNode,
   useContext,
-  useRef,
   useCallback,
 } from "react";
 import { AnimatePresence } from "motion/react";
 import { usePathname } from "next/navigation";
 
 import Loader from "./loader";
-import gsap from "gsap";
-import { usePerfProfile } from "@/hooks/use-perf-profile";
 
 type PreloaderContextType = {
   isLoading: boolean;
@@ -39,49 +36,31 @@ export const usePreloader = () => {
   }
   return context;
 };
-const LOADING_TIME = 2.5;
+
+/** Absolute upper bound: whatever happens, the intro never holds the site longer than this. */
+const MAX_INTRO_MS = 9000;
+
 function Preloader({ children, disabled = false }: PreloaderProps) {
   const pathname = usePathname();
-  // Skip the loading splash for the résumé route (and anywhere it's disabled).
+  // Skip the intro for the résumé route (and anywhere it's disabled).
   const skip = disabled || pathname?.startsWith("/resume");
 
+  // Preloader lives in the root layout, so this state survives client-side
+  // navigation: the intro plays once per page load and never replays on re-render.
   const [isLoading, setIsLoading] = useState(!skip);
   const [loadingPercent, setLoadingPercent] = useState(skip ? 100 : 0);
-  const loadingTween = useRef<gsap.core.Tween>(null);
-
-  // The splash exists only to mask the Chibi 3D scene loading. On low-end /
-  // reduced-motion devices that scene is never loaded, so its onLoad (which
-  // normally dismisses the splash) never fires — bypass immediately instead of
-  // leaving the page stuck behind the loader.
-  const { disable3D, ready: perfReady } = usePerfProfile();
 
   const bypassLoading = useCallback(() => {
-    loadingTween.current?.progress(0.99).kill();
     setLoadingPercent(100);
     setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    if (perfReady && disable3D) bypassLoading();
-  }, [perfReady, disable3D, bypassLoading]);
-  const loadingPercentRef = useRef<{ value: number }>({ value: 0 });
+  // Failsafe: never trap a visitor on the intro.
   useEffect(() => {
     if (skip) return;
-    loadingTween.current = gsap.to(loadingPercentRef.current, {
-      value: 100,
-      duration: LOADING_TIME,
-      ease: "slow(0.7,0.7,false)",
-      onUpdate: () => {
-        setLoadingPercent(loadingPercentRef.current.value);
-      },
-      onComplete: () => {
-        setIsLoading(false);
-      },
-    });
-    return () => {
-      loadingTween.current?.kill();
-    };
-  }, [skip]);
+    const id = window.setTimeout(bypassLoading, MAX_INTRO_MS);
+    return () => window.clearTimeout(id);
+  }, [skip, bypassLoading]);
 
   return (
     <preloaderContext.Provider

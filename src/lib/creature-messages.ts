@@ -19,11 +19,11 @@ export const MESSAGES: Record<MessageCategory, string[]> = {
   toDay: [
     "Are you seriously turning on the lights? Some of us are nocturnal.",
     "Morning already? I haven't finished my crimes.",
-    "Fine. I'll pretend I was asleep.",
+    "will daylight make you hire me?",
   ],
   toNight: [
     "Going dark? Don't blame me if something eats your portfolio.",
-    "Finally. Mischief hours.",
+    "We all know night is epic",
     "You didn't see anything in these woods.",
   ],
   caught: [
@@ -32,7 +32,7 @@ export const MESSAGES: Record<MessageCategory, string[]> = {
     "I was inspecting the typography.",
     "This forest has a very reasonable tax policy.",
   ],
-  onName: ["Nice mattress.", "Tax for living in my forest."],
+  onName: ["Nice mattress.", "hire me, dear human."],
   nibble: ["Quality control.", "Just a tiny snack.", "Your name looked delicious."],
 };
 

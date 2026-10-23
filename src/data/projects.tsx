@@ -54,8 +54,8 @@ const projects: Project[] = [
   {
     id: "portfolio",
     category: "Personal portfolio · Web experience",
-    title: "Robertfolio",
-    src: "/assets/projects-screenshots/portfolio/forest-preview.svg",
+    title: "Portfolio",
+    src: "/assets/projects-screenshots/portfolio/portfolio.png",
     screenshots: ["portfolio.png"],
     skills: { frontend: [TECH.ts, TECH.react, TECH.next, TECH.tailwind], backend: [] },
     live: "https://robertfolio.lovable.app",
@@ -71,7 +71,7 @@ const projects: Project[] = [
     id: "sidequest",
     category: "Social discovery · Web app",
     title: "SideQuest",
-    src: "/assets/projects-screenshots/sidequest/landing.svg",
+    src: "/assets/projects-screenshots/sidequest/sidequest.jpg",
     screenshots: ["sidequest.jpg"],
     skills: { frontend: [TECH.html, TECH.css, TECH.js], backend: [TECH.node, TECH.postgres] },
     live: "https://sidequest-world.vercel.app",
@@ -103,16 +103,20 @@ const projects: Project[] = [
   },
   {
     id: "stash",
-    category: "Web project · Details coming soon",
+    category: "Web application · Student productivity",
     title: "Stash",
-    src: "/assets/projects-screenshots/stash/placeholder.svg",
+    src: "/assets/projects-screenshots/stash/stash.jpg",
     screenshots: ["stash.jpg"],
-    skills: { frontend: [], backend: [] },
-    live: "#",
+    skills: { frontend: [TECH.html, TECH.css, TECH.js], backend: [] },
+    live: "https://stash0app.vercel.app/",
+    github: "https://github.com/robertdoesdev/Stash",
     content: (
       <div className="space-y-5">
         <TypographyP className="text-center font-mono text-2xl">Stash</TypographyP>
-        <TypographyP className="font-mono">This project is being prepared for its portfolio feature. A proper description, screenshots and live link will be added when the details are ready.</TypographyP>
+        <TypographyP className="font-mono">Built around the everyday needs of university students, Stash aims
+        to reduce the stress of misplaced documents and scattered files
+        through a more organized, accessible document management experience.</TypographyP>
+        <ProjectLinks live="https://stash0app.vercel.app/" repo="https://github.com/robertdoesdev/Stash" />
       </div>
     ),
   },

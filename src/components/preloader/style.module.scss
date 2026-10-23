@@ -1,30 +1,130 @@
 .introduction {
   height: 100dvh;
   width: 100dvw;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding-inline: 60px;
-  padding-bottom: 30px;
   position: fixed;
   z-index: 99;
-  // TODO: Add a better color instead of just the background to make it pop more
+  overflow: hidden;
   background-color: hsl(var(--background));
-  svg {
+  // Curved bottom edge used by the exit transition (kept from the original loader).
+  svg.curve {
     position: absolute;
     top: 0;
     width: 100%;
     height: calc(100% + 300px);
+    pointer-events: none;
     path {
       fill: hsl(var(--background));
     }
   }
-  p {
-    display: flex;
-    color: hsl(var(--foreground));
-    font-size: 72px;
-    align-items: center;
+}
+
+.scene {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // soft forest-light glow behind the name; follows the day/night theme tokens
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 52%, hsl(var(--foreground) / 0.07), transparent 70%),
+    radial-gradient(ellipse 90% 60% at 50% 100%, hsl(var(--foreground) / 0.05), transparent 70%);
+}
+
+.wordWrap {
+  position: relative;
+  padding: 0.5em 0 0.28em;
+  // the ground line the creature runs along
+  &::after {
+    content: "";
     position: absolute;
-    z-index: 1;
+    left: -6%;
+    right: -6%;
+    bottom: 0;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.28), transparent);
+    opacity: 0;
+    animation: groundIn 0.9s ease-out 0.5s forwards;
+  }
+}
+
+.word {
+  display: flex;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(40px, 13vw, 150px);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: hsl(var(--foreground));
+  user-select: none;
+}
+
+.letter {
+  display: inline-block;
+  line-height: 1;
+  opacity: 0;
+  transform-origin: 50% 85%;
+  animation: letterIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(var(--i) * 90ms + 150ms);
+}
+
+.skip {
+  position: absolute;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 70;
+  padding: 0.45rem 1rem;
+  border: 1px solid hsl(var(--foreground) / 0.25);
+  border-radius: 999px;
+  background: transparent;
+  color: hsl(var(--foreground) / 0.7);
+  font-family: var(--font-sans), sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  opacity: 0;
+  animation: fadeIn 0.6s ease 1.2s forwards;
+  &:hover,
+  &:focus-visible {
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--foreground) / 0.6);
+  }
+}
+
+@keyframes letterIn {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes groundIn {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+// Reduced motion: no travel, just a gentle fade.
+.reduced {
+  .letter {
+    transform: none;
+    animation: fadeIn 0.4s ease forwards;
+    animation-delay: calc(var(--i) * 40ms);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .letter {
+    transform: none;
+    animation: fadeIn 0.4s ease forwards;
+    animation-delay: calc(var(--i) * 40ms);
   }
 }

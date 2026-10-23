@@ -306,9 +306,64 @@ export function createCreatureEngine(opts: EngineOptions): CreatureEngine {
     return r.width > 40 && r.top >= 80 && r.bottom <= vh - 50 && r.left >= -2 && r.right <= vw + 4;
   }
 
+  /**
+   * The overlay splits the name into separate inline-block letters, which loses
+   * the font's kerning, so unaligned letters (most visibly the last one, the T)
+   * would drift away from where the real heading draws them the moment the
+   * overlay is shown. Before showing it, measure every glyph in the real <h1>
+   * and in the overlay with Range rects and nudge each overlay letter (relative
+   * offsets only, layout is unaffected) so they coincide exactly.
+   */
+  function alignLetters(stage: HTMLElement) {
+    const h1 = stage.querySelector<HTMLElement>(".name-h1");
+    const letters = Array.from(stage.querySelectorAll<HTMLElement>("[data-name-fx] [data-name-letter]"));
+    if (!h1 || letters.length === 0) return;
+    // never measure mid-animation: transforms would be baked into the rects
+    if (letters.some((l) => l.getAnimations().length > 0)) return;
+
+    const range = document.createRange();
+    const source: DOMRect[] = [];
+    const walker = document.createTreeWalker(h1, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = n.textContent ?? "";
+      for (let i = 0; i < text.length; i++) {
+        if (/\s/.test(text[i])) continue;
+        range.setStart(n, i);
+        range.setEnd(n, i + 1);
+        const r = range.getClientRects()[0];
+        if (r) source.push(r);
+      }
+    }
+    if (source.length !== letters.length) return; // markup differs: leave untouched
+
+    letters.forEach((l) => {
+      l.style.position = "relative";
+      l.style.left = "0px";
+      l.style.top = "0px";
+      l.style.willChange = "auto"; // no permanent compositing layers (they snap glyphs to whole pixels)
+    });
+    const here = letters.map((l) => {
+      const t = l.firstChild;
+      if (!t) return null;
+      range.setStart(t, 0);
+      range.setEnd(t, 1);
+      return range.getClientRects()[0] ?? null;
+    });
+    letters.forEach((l, i) => {
+      const h = source[i];
+      const o = here[i];
+      if (!o) return;
+      l.style.left = `${(h.left - o.left).toFixed(2)}px`;
+      l.style.top = `${(h.top - o.top).toFixed(2)}px`;
+    });
+  }
+
   function fxOn() {
     window.clearTimeout(fxOffTimer);
-    stageEl()?.setAttribute("data-fx", "on");
+    const stage = stageEl();
+    if (!stage) return;
+    if (stage.getAttribute("data-fx") !== "on") alignLetters(stage);
+    stage.setAttribute("data-fx", "on");
   }
   function fxOffSoon(ms: number) {
     window.clearTimeout(fxOffTimer);
@@ -936,6 +991,7 @@ export function createCreatureEngine(opts: EngineOptions): CreatureEngine {
         biteLetter = null;
       }
       stageEl()?.removeAttribute("data-fx");
+      lineLetters().forEach((l) => l.removeAttribute("style"));
       bushes.left.dataset.active = "false";
       bushes.right.dataset.active = "false";
       el.dataset.visible = "false";

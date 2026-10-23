@@ -11,7 +11,7 @@ const config = {
   ],
   author: "Robert Ocran",
   // Replace this address with the inbox you want the contact form to deliver to.
-  email: "",
+  email: "atoabourobert638@gmail.com",
   site: "https://robertfolio.lovable.app",
   githubUsername: "robertdoesdev",
   githubRepo: "Sidequest",
