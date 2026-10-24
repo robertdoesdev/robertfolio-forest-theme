@@ -4,17 +4,14 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { motion } from "motion/react";
 import { slideUp } from "./anim";
 import { usePreloader } from ".";
-import { CreatureArt } from "@/components/creature/creature-art";
-import { useForestTheme } from "@/contexts/forest-theme";
+import { IntroCreature } from "./intro-creature";
+import { IntroForest } from "./intro-forest";
 import { usePerfProfile } from "@/hooks/use-perf-profile";
 
 /**
- * ROBERT intro. The site's own forest creature runs along the word, crouches,
- * and jumps onto the "O", which squashes under its weight. The creature then
- * settles and the curtain lifts into the portfolio.
- *
- * The creature reuses the `.creature` / `.forest-creature-layer` pose styles
- * from globals.css, so it is the same character as on the main page.
+ * ROBERT intro, after the famous lamp ident: on a night forest floor the
+ * (big) forest creature hops in from the left, jumps onto the "O" and stomps
+ * it flat, wobbles on the wreckage, then hops away. The curtain then lifts.
  */
 
 const WORD = ["R", "O", "B", "E", "R", "T"];
@@ -39,13 +36,8 @@ function wait(sig: AbortSignal, ms: number) {
   });
 }
 
-/** Run a Web Animation to completion (cancel-safe) and commit its final transform. */
-async function play(
-  sig: AbortSignal,
-  el: HTMLElement,
-  keyframes: Keyframe[],
-  options: KeyframeAnimationOptions,
-) {
+/** Play a Web Animation to the end (cancel-safe), then pin the final transform. */
+async function play(sig: AbortSignal, el: HTMLElement, keyframes: Keyframe[], options: KeyframeAnimationOptions) {
   if (sig.aborted) throw new Cancelled();
   const anim = el.animate(keyframes, { fill: "forwards", ...options });
   const onAbort = () => anim.cancel();
@@ -58,26 +50,18 @@ async function play(
     sig.removeEventListener("abort", onAbort);
   }
   const last = keyframes[keyframes.length - 1].transform;
-  if (typeof last === "string" && el.dataset.creature === "true") el.style.transform = last;
+  if (typeof last === "string") el.style.transform = last;
   anim.cancel();
 }
 
-type Geometry = {
-  fontPx: number;
-  cx: number; // centre of the O
-  inkTop: number;
-  inkBottom: number;
-  ground: number;
-  originY: number; // baseline as a % of the O's box (squash pivot)
-};
+type Geometry = { fontPx: number; cx: number; inkTop: number; baseline: number; originY: number };
 
-function measure(o: HTMLElement, wrap: HTMLElement): Geometry {
+function measure(o: HTMLElement): Geometry {
   const r = o.getBoundingClientRect();
   const cs = getComputedStyle(o);
   const fontPx = parseFloat(cs.fontSize) || 100;
   let baseline = r.top + r.height * 0.8;
   let inkTop = r.top + r.height * 0.18;
-  let inkBottom = baseline;
   try {
     const ctx = document.createElement("canvas").getContext("2d");
     if (ctx) {
@@ -89,51 +73,44 @@ function measure(o: HTMLElement, wrap: HTMLElement): Geometry {
       const lh = Number.isNaN(lhRaw) ? fa + fd : lhRaw;
       baseline = r.top + (lh - (fa + fd)) / 2 + fa;
       inkTop = baseline - m.actualBoundingBoxAscent;
-      inkBottom = baseline + m.actualBoundingBoxDescent;
     }
   } catch {
     /* keep the proportional estimate */
   }
-  return {
-    fontPx,
-    cx: r.left + r.width / 2,
-    inkTop,
-    inkBottom,
-    ground: wrap.getBoundingClientRect().bottom - 3,
-    originY: ((baseline - r.top) / r.height) * 100,
-  };
+  return { fontPx, cx: r.left + r.width / 2, inkTop, baseline, originY: ((baseline - r.top) / r.height) * 100 };
 }
 
 export default function Index() {
   const { bypassLoading } = usePreloader();
-  const { isDay } = useForestTheme();
   const { reducedMotion, ready } = usePerfProfile();
   const [dimension, setDimension] = useState({ width: 0, height: 0 });
 
-  const layerRef = useRef<HTMLDivElement>(null);
-  const creatureRef = useRef<HTMLDivElement>(null);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const petRef = useRef<HTMLDivElement>(null);
+  const petLayerRef = useRef<HTMLDivElement>(null);
+  const groundRef = useRef<HTMLDivElement>(null);
   const letterRefs = useRef<(HTMLSpanElement | null)[]>([]);
 
   useEffect(() => {
     setDimension({ width: window.innerWidth, height: window.innerHeight });
   }, []);
 
-  // Choreography. Cancel-safe: leaving the screen aborts everything.
   useEffect(() => {
     if (!ready || dimension.width === 0) return;
-    const layer = layerRef.current;
-    const el = creatureRef.current;
-    const wrap = wrapRef.current;
+    const el = petRef.current;
+    const layer = petLayerRef.current;
+    const root = rootRef.current;
+    const scene = sceneRef.current;
+    const groundLine = groundRef.current;
     const o = letterRefs.current[TARGET];
-    if (!layer || !el || !wrap || !o) {
+    if (!el || !layer || !root || !scene || !groundLine || !o) {
       const id = window.setTimeout(bypassLoading, 1500);
       return () => window.clearTimeout(id);
     }
     const ac = new AbortController();
     const sig = ac.signal;
-    el.dataset.creature = "true";
-
+    const debris: HTMLElement[] = [];
     const pose = (p: string) => {
       el.dataset.pose = p;
     };
@@ -144,21 +121,24 @@ export default function Index() {
 
     (async () => {
       try {
-        // Make sure the display font is in before measuring the O.
+        // Measure only once the display font is in, otherwise the O moves afterwards.
         await Promise.race([document.fonts?.ready ?? Promise.resolve(), wait(sig, 1200)]);
-        const g = measure(o, wrap);
-        const size = clamp(g.fontPx * 0.5, 52, 92);
-        layer.style.setProperty("--c-size", `${size}px`);
-        const S = el.offsetWidth || size;
+        const g = measure(o);
+        const S = clamp(g.fontPx * 0.95, 48, 200); // big: roughly as tall as the letters
+        el.style.setProperty("--c-size", `${S}px`);
         const vw = window.innerWidth;
+        const ground = g.baseline + 2; // creature stands on the letters' baseline
+        const capH = g.baseline - g.inkTop;
         const landY = g.inkTop + 3;
-        const capH = g.inkBottom - g.inkTop;
 
-        el.dataset.facing = "r";
+        // the forest floor / ground line follow the word's baseline
+        root.style.setProperty("--ground", `${g.baseline}px`);
+        groundLine.style.top = `${g.baseline}px`;
+
         el.dataset.visible = "true";
 
         if (reducedMotion) {
-          // Simplified intro: the creature is simply sitting on the O.
+          // Simplified intro: the creature just sits on the O, nothing travels.
           el.style.transform = at(g.cx, landY);
           pose("idle");
           await wait(sig, 1500);
@@ -166,86 +146,154 @@ export default function Index() {
           return;
         }
 
-        const stopX = clamp(g.cx - g.fontPx * 0.62, S * 0.6, vw - S);
-        el.style.transform = at(-S, g.ground);
-        pose("run");
+        /** One bouncy hop: crouch, spring, arc, land. */
+        const hop = async (fromX: number, fromY: number, toX: number, toY: number, apex: number, ms: number) => {
+          pose("crouch");
+          await wait(sig, 70);
+          pose("jump");
+          await play(
+            sig,
+            el,
+            [
+              { transform: at(fromX, fromY), easing: "cubic-bezier(.2,.7,.4,1)" },
+              { transform: at((fromX + toX) / 2, Math.min(fromY, toY) - apex), offset: 0.5, easing: "cubic-bezier(.6,0,.8,.4)" },
+              { transform: at(toX, toY) },
+            ],
+            { duration: ms },
+          );
+          pose("land");
+          await wait(sig, 80);
+        };
+
+        const stopX = clamp(g.cx - g.fontPx * 0.78, S * 0.4, vw - S);
+        const startX = -S * 0.7;
+        el.style.transform = at(startX, ground);
+        pose("idle");
         await wait(sig, 350);
 
-        // 1. quick, bouncy run in along the ground line
-        const dist = stopX + S;
-        await play(sig, el, [{ transform: at(-S, g.ground) }, { transform: at(stopX, g.ground) }], {
-          duration: clamp(dist / 0.62, 700, 1800),
-          easing: "linear",
-        });
+        // 1. hops in from the left
+        const hops = Math.max(2, Math.round((stopX - startX) / (g.fontPx * 1.1)));
+        let x = startX;
+        for (let i = 1; i <= hops; i++) {
+          const nx = startX + ((stopX - startX) * i) / hops;
+          await hop(x, ground, nx, ground, S * 0.45, 420);
+          x = nx;
+        }
 
-        // 2. notices the O
+        // 2. spots the O
         pose("look");
         look(1, -1);
-        await wait(sig, 320);
+        await wait(sig, 260);
         look(0, 0);
 
-        // 3. anticipation
+        // 3. the big jump onto the O
         pose("crouch");
-        await wait(sig, 340);
-
-        // 4. jump: up and over onto the O
+        await wait(sig, 240);
         pose("jump");
-        const apexY = landY - S * 0.75;
-        const apexX = (stopX + g.cx) / 2;
         await play(
           sig,
           el,
           [
-            { transform: at(stopX, g.ground), easing: "cubic-bezier(.2,.7,.4,1)" },
-            { transform: at(apexX, apexY), offset: 0.5, easing: "cubic-bezier(.6,0,.8,.4)" },
+            { transform: at(stopX, ground), easing: "cubic-bezier(.2,.7,.4,1)" },
+            { transform: at((stopX + g.cx) / 2, landY - S * 0.7), offset: 0.5, easing: "cubic-bezier(.6,0,.8,.4)" },
             { transform: at(g.cx, landY) },
           ],
-          { duration: 620 },
+          { duration: 560 },
         );
 
-        // 5. landing: the O takes the weight (squash & stretch), the creature rides it
-        pose("land");
+        // 4. STOMP: the O is flattened, the creature rides it down
         o.style.transformOrigin = `50% ${g.originY}%`;
-        const dip = capH * 0.2;
-        const squash = [
-          { transform: "scale(1,1)" },
-          { transform: "scale(1.16,0.8)", offset: 0.22 },
-          { transform: "scale(0.95,1.08)", offset: 0.5 },
-          { transform: "scale(1.02,0.98)", offset: 0.78 },
-          { transform: "scale(1,1)" },
-        ];
-        const ride = [
-          { transform: at(g.cx, landY) },
-          { transform: at(g.cx, landY + dip), offset: 0.22 },
-          { transform: at(g.cx, landY - dip * 0.4), offset: 0.5 },
-          { transform: at(g.cx, landY + dip * 0.1), offset: 0.78 },
-          { transform: at(g.cx, landY) },
-        ];
-        const neighbours = [TARGET - 1, TARGET + 1]
-          .map((i) => letterRefs.current[i])
-          .filter((n): n is HTMLSpanElement => !!n);
-        neighbours.forEach((n) => {
-          n.animate(
+        const flatTop = g.baseline - capH * 0.15;
+        pose("land");
+        burst(layer, g.cx, g.baseline, g.fontPx, debris);
+        scene.animate(
+          [
+            { transform: "translate(0,0)" },
+            { transform: "translate(-5px,4px)", offset: 0.15 },
+            { transform: "translate(5px,-3px)", offset: 0.35 },
+            { transform: "translate(-3px,2px)", offset: 0.6 },
+            { transform: "translate(0,0)" },
+          ],
+          { duration: 320, easing: "ease-out" },
+        );
+        const crush = o
+          .animate(
             [
-              { transform: "translateY(0)" },
-              { transform: "translateY(0.02em)", offset: 0.25 },
-              { transform: "translateY(0)" },
+              { transform: "scale(1,1)" },
+              { transform: "scale(1.55,0.11)", offset: 0.5 },
+              { transform: "scale(1.42,0.2)", offset: 0.75 },
+              { transform: "scale(1.48,0.15)" },
             ],
-            { duration: 560, delay: 40, easing: "ease-out" },
-          );
-        });
-        const squashDone = o.animate(squash, { duration: 700, easing: "ease-out" }).finished.catch(() => undefined);
-        window.setTimeout(() => pose("idle"), 360);
-        await Promise.all([play(sig, el, ride, { duration: 700, easing: "ease-out" }), squashDone]);
+            { duration: 300, easing: "cubic-bezier(.5,0,.9,.6)", fill: "forwards" },
+          )
+          .finished.then(() => {
+            o.style.transform = "scale(1.48,0.15)";
+          })
+          .catch(() => undefined);
+        await Promise.all([
+          play(
+            sig,
+            el,
+            [
+              { transform: at(g.cx, landY), easing: "cubic-bezier(.5,0,.9,.6)" },
+              { transform: at(g.cx, flatTop + 6), offset: 0.55, easing: "ease-out" },
+              { transform: at(g.cx, flatTop - 10), offset: 0.8, easing: "ease-in" },
+              { transform: at(g.cx, flatTop) },
+            ],
+            { duration: 380 },
+          ),
+          crush,
+        ]);
 
-        // 6. settle: a quick look around from its perch
+        // 5. wobbles on the wreckage
         pose("idle");
-        look(0.9, 0);
-        await wait(sig, 420);
-        look(-0.7, 0);
-        await wait(sig, 420);
+        look(0.8, 0);
+        await wait(sig, 320);
+        pose("crouch");
+        await wait(sig, 120);
+        pose("jump");
+        await play(
+          sig,
+          el,
+          [
+            { transform: at(g.cx, flatTop), easing: "cubic-bezier(.2,.7,.4,1)" },
+            { transform: at(g.cx, flatTop - S * 0.4), offset: 0.5, easing: "cubic-bezier(.6,0,.8,.4)" },
+            { transform: at(g.cx, flatTop) },
+          ],
+          { duration: 400 },
+        );
+        pose("land");
+        await wait(sig, 140);
         look(0, 0);
-        await wait(sig, 420);
+        pose("idle");
+        await wait(sig, 220);
+
+        // 6. hops away to the right, leaving the O flattened
+        const awayX = Math.min(g.cx + g.fontPx * 1.4, vw - S * 0.5);
+        pose("crouch");
+        await wait(sig, 180);
+        pose("jump");
+        await play(
+          sig,
+          el,
+          [
+            { transform: at(g.cx, flatTop), easing: "cubic-bezier(.2,.7,.4,1)" },
+            { transform: at((g.cx + awayX) / 2, flatTop - S * 0.8), offset: 0.45, easing: "cubic-bezier(.6,0,.8,.4)" },
+            { transform: at(awayX, ground) },
+          ],
+          { duration: 560 },
+        );
+        pose("land");
+        await wait(sig, 80);
+        const exitX = vw + S;
+        const outHops = Math.max(2, Math.round((exitX - awayX) / (g.fontPx * 1.1)));
+        x = awayX;
+        for (let i = 1; i <= outHops; i++) {
+          const nx = awayX + ((exitX - awayX) * i) / outHops;
+          await hop(x, ground, nx, ground, S * 0.45, 380);
+          x = nx;
+        }
+        await wait(sig, 350);
         bypassLoading();
       } catch (e) {
         if (!(e instanceof Cancelled)) {
@@ -255,10 +303,13 @@ export default function Index() {
       }
     })();
 
-    return () => ac.abort();
+    return () => {
+      ac.abort();
+      debris.forEach((d) => d.remove());
+    };
   }, [ready, reducedMotion, dimension.width, bypassLoading]);
 
-  // Skip with Enter / Escape / Space (the Skip button and a tap also work).
+  // Skip with Enter / Escape / Space (the Skip button and a tap/click also work).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape" || e.key === "Enter" || e.key === " ") bypassLoading();
@@ -286,6 +337,7 @@ export default function Index() {
 
   return (
     <motion.div
+      ref={rootRef}
       variants={slideUp}
       initial="initial"
       exit="exit"
@@ -296,8 +348,16 @@ export default function Index() {
     >
       {dimension.width > 0 && (
         <>
-          <div className={`${styles.scene} ${reducedMotion ? styles.reduced : ""}`}>
-            <div ref={wrapRef} className={styles.wordWrap}>
+          {/* curtain shape first, so it stays behind everything else */}
+          <svg className={styles.curve} aria-hidden="true">
+            <motion.path variants={curve} initial="initial" exit="exit"></motion.path>
+          </svg>
+
+          <IntroForest />
+          <div ref={groundRef} className={styles.groundLine} aria-hidden="true" />
+
+          <div ref={sceneRef} className={styles.scene}>
+            <div className={styles.wordWrap}>
               <div className={styles.word} aria-hidden="true">
                 {WORD.map((letter, i) => (
                   <span
@@ -305,7 +365,7 @@ export default function Index() {
                     ref={(n) => {
                       letterRefs.current[i] = n;
                     }}
-                    className={styles.letter}
+                    className={`${styles.letter} ${i === TARGET ? styles.target : ""}`}
                     style={{ "--i": i } as CSSProperties}
                   >
                     {letter}
@@ -315,12 +375,10 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Same creature as the main page: pose styles come from globals.css */}
-          <div ref={layerRef} className="forest-creature-layer" data-day={isDay ? "true" : "false"} style={{ zIndex: 5 }} aria-hidden="true">
-            <div ref={creatureRef} className="creature" data-pose="hidden" data-visible="false" data-facing="r">
-              <div className="c-flip">
-                <CreatureArt />
-              </div>
+          <div ref={petLayerRef} className={styles.petLayer} aria-hidden="true">
+            {/* always the night-time fur: this intro is set at night */}
+            <div ref={petRef} className={styles.pet} data-pose="hidden" data-visible="false" data-day="false">
+              <IntroCreature />
             </div>
           </div>
 
@@ -334,12 +392,55 @@ export default function Index() {
           >
             Skip
           </button>
-
-          <svg className={styles.curve} aria-hidden="true">
-            <motion.path variants={curve} initial="initial" exit="exit"></motion.path>
-          </svg>
         </>
       )}
     </motion.div>
   );
+}
+
+/** Impact: shards of the O and a puff of dust, thrown out of the crater. */
+function burst(layer: HTMLElement, x: number, y: number, fontPx: number, bag: HTMLElement[]) {
+  const make = (cls: string, w: number, h: number, left: number, top: number) => {
+    const d = document.createElement("span");
+    d.className = cls;
+    d.style.width = `${w}px`;
+    d.style.height = `${h}px`;
+    d.style.left = `${left}px`;
+    d.style.top = `${top}px`;
+    layer.appendChild(d);
+    bag.push(d);
+    return d;
+  };
+  const done = (d: HTMLElement) => {
+    d.remove();
+    const i = bag.indexOf(d);
+    if (i >= 0) bag.splice(i, 1);
+  };
+  const sizes = [0.07, 0.05, 0.09, 0.04, 0.06, 0.08, 0.05, 0.07, 0.04, 0.06];
+  sizes.forEach((k, i) => {
+    const s = k * fontPx;
+    const d = make(styles.shard, s, s * 0.55, x - s / 2 + (i - 5) * fontPx * 0.05, y - s);
+    const dir = i % 2 === 0 ? -1 : 1;
+    const dx = dir * fontPx * (0.25 + (i % 5) * 0.12);
+    const up = fontPx * (0.35 + (i % 4) * 0.18);
+    d.animate(
+      [
+        { transform: "translate(0,0) rotate(0deg)", opacity: 1 },
+        { transform: `translate(${dx * 0.55}px,${-up}px) rotate(${dir * 160}deg)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(${dx}px,${fontPx * 0.08}px) rotate(${dir * 340}deg)`, opacity: 0 },
+      ],
+      { duration: 800 + (i % 4) * 90, easing: "cubic-bezier(.3,.1,.5,1)", fill: "forwards" },
+    ).onfinish = () => done(d);
+  });
+  [-1, 1].forEach((dir) => {
+    const s = fontPx * 0.32;
+    const d = make(styles.dust, s, s * 0.6, x - s / 2, y - s * 0.6);
+    d.animate(
+      [
+        { transform: "translate(0,0) scale(0.3)", opacity: 0.7 },
+        { transform: `translate(${dir * fontPx * 0.8}px,-6px) scale(1.7)`, opacity: 0 },
+      ],
+      { duration: 700, easing: "ease-out", fill: "forwards" },
+    ).onfinish = () => done(d);
+  });
 }

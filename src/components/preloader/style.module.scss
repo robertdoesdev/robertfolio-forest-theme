@@ -1,71 +1,178 @@
+/* ROBERT intro (night forest). Everything the intro needs lives in this file. */
+
 .introduction {
+  --ground: 62%;
   height: 100dvh;
   width: 100dvw;
   position: fixed;
   z-index: 99;
-  overflow: hidden;
-  background-color: hsl(var(--background));
-  // Curved bottom edge used by the exit transition (kept from the original loader).
-  svg.curve {
-    position: absolute;
-    top: 0;
-    width: 100%;
-    height: calc(100% + 300px);
-    pointer-events: none;
-    path {
-      fill: hsl(var(--background));
-    }
+  background-color: #050c0f;
+}
+
+/* Curved bottom edge for the exit transition (as in the original loader).
+   It sits BEHIND everything else (z-index 0) and matches the intro's base colour. */
+.curve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  width: 100%;
+  height: calc(100% + 300px);
+  pointer-events: none;
+  path {
+    fill: #050c0f;
   }
 }
+
+/* ---------------- night forest ---------------- */
+
+.forest {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #040810 0%, #0a1824 45%, #0d2a2c 100%);
+}
+.stars {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 46%;
+}
+.moon {
+  position: absolute;
+  top: 9%;
+  right: 12%;
+  width: clamp(46px, 7vw, 96px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 36%, #fffdf0, #ece8c8 60%, #cfcaa2);
+  box-shadow: 0 0 40px 12px rgba(236, 232, 200, 0.28), 0 0 160px 60px rgba(150, 190, 200, 0.14);
+}
+.trees {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  bottom: calc(100% - var(--ground));
+  height: 62%;
+}
+.floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--ground);
+  bottom: 0;
+  background: linear-gradient(180deg, #0b1d1c 0%, #07130f 40%, #050c0f 100%);
+}
+.mist {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: calc(var(--ground) - 4%);
+  height: 12%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(160, 205, 200, 0.16), transparent 70%);
+  filter: blur(8px);
+}
+.firefly {
+  position: absolute;
+  border-radius: 50%;
+  background: #e9f7a4;
+  box-shadow: 0 0 8px 2px rgba(222, 246, 140, 0.7);
+  animation: drift 7s ease-in-out infinite alternate, twinkle 3s ease-in-out infinite;
+}
+@keyframes drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(26px, -22px); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 1; }
+}
+
+/* ---------------- word ---------------- */
 
 .scene {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  // soft forest-light glow behind the name; follows the day/night theme tokens
-  background:
-    radial-gradient(ellipse 60% 45% at 50% 52%, hsl(var(--foreground) / 0.07), transparent 70%),
-    radial-gradient(ellipse 90% 60% at 50% 100%, hsl(var(--foreground) / 0.05), transparent 70%);
 }
 
 .wordWrap {
   position: relative;
-  padding: 0.5em 0 0.28em;
-  // the ground line the creature runs along
-  &::after {
-    content: "";
-    position: absolute;
-    left: -6%;
-    right: -6%;
-    bottom: 0;
-    height: 2px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.28), transparent);
-    opacity: 0;
-    animation: groundIn 0.9s ease-out 0.5s forwards;
-  }
+  padding: 0;
+  font-size: clamp(40px, 13vw, 150px);
 }
 
 .word {
   display: flex;
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(40px, 13vw, 150px);
+  font-size: 1em;
   font-weight: 800;
   line-height: 1;
-  letter-spacing: -0.01em;
-  color: hsl(var(--foreground));
+  color: #f4eddb;
+  text-shadow: 0 0 50px rgba(190, 225, 170, 0.22), 0 6px 0 rgba(0, 0, 0, 0.35);
   user-select: none;
 }
 
+/* Letters only fade in (no transform), so no letter can ever shift or slip
+   under a neighbour. Only the O is transformed, when it gets stomped. */
 .letter {
   display: inline-block;
   line-height: 1;
   opacity: 0;
-  transform-origin: 50% 85%;
-  animation: letterIn 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-  animation-delay: calc(var(--i) * 90ms + 150ms);
+  animation: fadeIn 0.55s ease forwards;
+  animation-delay: calc(var(--i) * 90ms + 100ms);
+}
+.target {
+  position: relative;
+  z-index: 2;
+}
+
+/* soft line the creature hops along, at the base of the letters */
+.groundLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(244, 237, 219, 0.28) 20%, rgba(244, 237, 219, 0.28) 80%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: fadeIn 0.9s ease-out 0.4s forwards;
+}
+
+/* impact debris and dust */
+.shard {
+  position: absolute;
+  border-radius: 2px;
+  background: #f4eddb;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.dust {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(190, 215, 205, 0.5);
+  filter: blur(2px);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+.petLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .skip {
@@ -73,58 +180,124 @@
   bottom: max(24px, env(safe-area-inset-bottom));
   left: 50%;
   transform: translateX(-50%);
-  z-index: 70;
+  z-index: 4;
   padding: 0.45rem 1rem;
-  border: 1px solid hsl(var(--foreground) / 0.25);
+  border: 1px solid rgba(244, 237, 219, 0.3);
   border-radius: 999px;
-  background: transparent;
-  color: hsl(var(--foreground) / 0.7);
+  background: rgba(5, 12, 15, 0.4);
+  color: rgba(244, 237, 219, 0.75);
   font-family: var(--font-sans), sans-serif;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   cursor: pointer;
   opacity: 0;
-  animation: fadeIn 0.6s ease 1.2s forwards;
+  animation: fadeIn 0.6s ease 1s forwards;
   &:hover,
   &:focus-visible {
-    color: hsl(var(--foreground));
-    border-color: hsl(var(--foreground) / 0.6);
+    color: #f4eddb;
+    border-color: rgba(244, 237, 219, 0.7);
   }
 }
 
-@keyframes letterIn {
-  from {
-    opacity: 0;
-    transform: translateY(0.35em) scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@keyframes groundIn {
-  to {
-    opacity: 1;
-  }
-}
 @keyframes fadeIn {
   to {
     opacity: 1;
   }
 }
 
-// Reduced motion: no travel, just a gentle fade.
-.reduced {
-  .letter {
-    transform: none;
-    animation: fadeIn 0.4s ease forwards;
-    animation-delay: calc(var(--i) * 40ms);
+/* ---------------- creature ---------------- */
+
+.pet {
+  --c-fur: #b9764a;
+  --c-fur-light: #d89a68;
+  --c-fur-dark: #7f4a2c;
+  --c-cream: #f3e1bd;
+  --c-ear: #e7a08a;
+  --c-blush: #e98c78;
+  --c-eye: #fff8e6;
+  --c-pupil: #22140d;
+  --c-nose: #3a2018;
+  --look-x: 0;
+  --look-y: 0;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--c-size, 64px);
+  height: var(--c-size, 64px);
+  margin-left: calc(var(--c-size, 64px) / -2);
+  margin-top: calc(var(--c-size, 64px) * -0.95);
+  visibility: hidden;
+  will-change: transform;
+  &[data-visible="true"] {
+    visibility: visible;
+  }
+  &[data-day="false"] {
+    --c-fur: #a8683f;
+    --c-fur-light: #c88a5e;
   }
 }
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.28));
+  g,
+  ellipse {
+    transform-box: fill-box;
+  }
+}
+.body { transform-origin: 50% 100%; }
+.tail { transform-origin: 85% 90%; animation: tailSway 3.2s ease-in-out infinite; }
+.head { transform-origin: 50% 85%; }
+.ear { transform-origin: 50% 100%; }
+.eye { transform-origin: 50% 50%; }
+.pupil {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  transform: translate(calc(var(--look-x) * 1.5px), calc(var(--look-y) * 1.3px));
+  transition: transform 0.14s ease-out;
+}
+.lid { transform-origin: 50% 0%; transform: scaleY(0); animation: blink 5.2s infinite; }
+.foot { transform-origin: 50% 50%; }
+.arm { transform-origin: 50% 0%; }
+
+@keyframes tailSway { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(5deg); } }
+@keyframes blink { 0%, 93%, 100% { transform: scaleY(0); } 95.5% { transform: scaleY(1); } }
+@keyframes idle { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.02, 1.035); } }
+@keyframes runBob { 0%, 100% { transform: translateY(0) rotate(-4deg) scale(1.04, 0.95); } 50% { transform: translateY(-5px) rotate(-7deg) scale(0.97, 1.05); } }
+@keyframes footA { 0%, 100% { transform: translate(-5px, 0) rotate(-12deg); } 50% { transform: translate(6px, -4px) rotate(12deg); } }
+@keyframes footB { 0%, 100% { transform: translate(5px, -4px) rotate(12deg); } 50% { transform: translate(-6px, 0) rotate(-12deg); } }
+@keyframes tailRun { 0%, 100% { transform: rotate(10deg) scaleX(1.06); } 50% { transform: rotate(-4deg) scaleX(0.96); } }
+
+.pet[data-pose="idle"] .body { animation: idle 2.4s ease-in-out infinite; }
+.pet[data-pose="look"] .head { transform: rotate(calc(var(--look-x) * 5deg)); transition: transform 0.18s ease-out; }
+
+.pet[data-pose="run"] .body { animation: runBob 0.27s ease-in-out infinite; }
+.pet[data-pose="run"] .footA { animation: footA 0.27s linear infinite; }
+.pet[data-pose="run"] .footB { animation: footB 0.27s linear infinite; }
+.pet[data-pose="run"] .tail { animation: tailRun 0.27s ease-in-out infinite; }
+.pet[data-pose="run"] .ear { transform: rotate(-12deg); }
+.pet[data-pose="run"] .head { transform: translate(2px, 1px) rotate(4deg); }
+
+.pet[data-pose="crouch"] .body { transform: scale(1.14, 0.76); transition: transform 0.18s ease-out; }
+.pet[data-pose="crouch"] .ear { transform: rotate(-16deg) scaleY(0.85); }
+.pet[data-pose="crouch"] .tail { transform: rotate(8deg); animation: none; }
+
+.pet[data-pose="jump"] .body { transform: scale(0.86, 1.22); transition: transform 0.12s ease-out; }
+.pet[data-pose="jump"] .footA { transform: translate(-3px, -5px); }
+.pet[data-pose="jump"] .footB { transform: translate(4px, -6px); }
+.pet[data-pose="jump"] .arm { transform: rotate(-60deg); }
+.pet[data-pose="jump"] .tail { transform: rotate(14deg); animation: none; }
+.pet[data-pose="jump"] .ear { transform: rotate(-18deg); }
+
+.pet[data-pose="land"] .body { transform: scale(1.2, 0.78); transition: transform 0.09s ease-out; }
+
 @media (prefers-reduced-motion: reduce) {
-  .letter {
-    transform: none;
-    animation: fadeIn 0.4s ease forwards;
-    animation-delay: calc(var(--i) * 40ms);
+  .tail,
+  .lid,
+  .pet .body {
+    animation: none;
   }
 }
