@@ -55,8 +55,8 @@ const projects: Project[] = [
     id: "portfolio",
     category: "Personal portfolio · Web experience",
     title: "Portfolio",
-    src: "/assets/projects-screenshots/portfolio/portfolio.png",
-    screenshots: ["portfolio.png"],
+    src: "/assets/projects-screenshots/portfolio/portfolio.jpg",
+    screenshots: ["portfolio.jpg"],
     skills: { frontend: [TECH.ts, TECH.react, TECH.next, TECH.tailwind], backend: [] },
     live: "https://robertfolio.lovable.app",
     content: (

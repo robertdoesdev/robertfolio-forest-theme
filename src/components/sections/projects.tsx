@@ -106,9 +106,9 @@ const ProjectCard = ({ project }: { project: Project }) => {
 
         <ResponsiveDialogContent className="md:max-w-4xl md:h-[85vh] md:!flex md:flex-col md:overflow-hidden md:p-0 md:gap-0">
           {/* Sticky header */}
-          <div className="shrink-0 border-b border-border bg-background/80 backdrop-blur-sm px-8 py-5">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4 min-w-0">
+          <div className="shrink-0 border-b border-border bg-background/80 backdrop-blur-sm px-5 py-4 md:px-8 md:py-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between md:gap-4">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2">
                 <h4 className="font-display text-xl md:text-2xl font-bold text-foreground tracking-tight truncate">
                   {project.title}
                 </h4>
